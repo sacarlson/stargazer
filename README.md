@@ -104,6 +104,16 @@ rm ./stargazer/ionic/platforms/android/build/outputs/apk/android-debug.apk
 
 ./android.sh
 
+for added webcam support in android emulator:
+
+curl -s "https://get.sdkman.io" | bash
+
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+sdk version
+
+sdk install gradle
+
 ```
 
 
