@@ -294,8 +294,126 @@ angular.module('app')
 		getPaths();
 	};
 
-	$scope.submit = function (index) {
+    function send_escrow_to_callback(remote_txData){
+        //this sends the generated timed escrow transaction and other needed info to the escrow callback
+        //b64_timed_tx_env: the signed time based transaction that becomes valid at escrow_expire time 
+        //escrow_holding_publicId: GKDS...
+        //tx_tag: the stores transaction id that this payment is attached to.
+        //escrow_expire_timestamp: time that escrow transaction becomes valid to transact for store to collect funds
+        //
+        // remote_txData: {"stellar":{"payment":{"stellar":{"payment":{"destination":"GDUPQLNDVSUKJ4XKQQDITC7RFYCJTROCR6AMUBAMPGBIZXQU4UTAGX7C","network":"cee0302d","amount":"85.0000","asset":{"code":"USD","issuer":"GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGSNFHEYVXM3XOJMDS674JZ"},"memo":{"type":"text","value":"1"},"escrow":{"publicId":"GAVUFP3ZYPZUI2WBSFAGRMDWUWK2UDCPD4ODIIADOILQKB4GI3APVGIF","email":"funtracker.site.bank@gmail.com","expire_ts":1491262504,"expire_dt":"2017-04-03","fee":222.5,"callback":"http:\/\/b.funtracker.site\/store\/?route=extension\/payment\/stellar_net\/submit_escrow&"}},"version":"2.1"}}
 
+        //var remote_txData = Wallet.remote_txData;
+        console.log("send_escrow_to_callback");
+        console.log(remote_txData.stellar.payment.escrow.callback);
+        var b64 = encodeURIComponent(remote_txData.b64_escrow_tx);
+        var client = setup_xml(xml_response_get_remote_tx);
+        var ss = remote_txData.stellar.payment.escrow.callback + 'tx_tag=' + remote_txData.stellar.payment.memo.value + "&b64_tx=" + b64 + "&exp=" + remote_txData.stellar.payment.escrow.expire_ts + "&escPID=" + remote_txData.keypair_escrow.publicKey();
+        console.log("sending: ");
+        console.log(ss);
+        client.open("GET", ss, true); 
+        client.send();
+      }
+        
+      function submit_escrow(){
+         //this generates the timed escrow payment transaction, then sends it to the stores escrow callback
+         var remote_txData = Wallet.remote_txData;
+         transaction = new StellarSdk.Transaction(remote_txData.b64_escrow_tx);
+            //tx_status.textContent = "Escrow Tx Funding ";
+            console.log("Escrow Tx Funding ");
+            remote_txData.escrow_status = 2;
+            server.submitTransaction(transaction).then(function(result) {              
+               //tx_status.textContent = "Escrow Funding Completed OK";
+               
+               console.log("Escrow Funding Completed OK");
+               remote_txData.escrow_status = 3;
+               var tx_array = [];
+               
+               // the vendor now gets the asset sent to his store account
+               tx_array.push(StellarSdk.Operation.payment({
+                 destination: remote_txData.stellar.payment.destination,
+                 amount: fix7dec(remote_txData.stellar.payment.amount),
+                 asset: remote_txData.escrow_asset
+               }));
+
+               // remove trust in our added asset to allow accountMerge bellow
+               var asset3 = new StellarSdk.Asset(remote_txData.stellar.payment.asset.code, remote_txData.stellar.payment.asset.issuer);
+               tx_array.push(StellarSdk.Operation.changeTrust({asset: asset3,limit: "0"}));              
+
+               //send back what's left of the XLM back to the buyer who created the escrow (you).
+               tx_array.push(StellarSdk.Operation.accountMerge({
+                 destination: active_keypair.publicKey()
+               })); 
+
+               server.loadAccount(remote_txData.keypair_escrow.publicKey())
+                .then(function (account) {
+                  // this transaction won't be valid until escrow expire timestamp date and time
+                  var timebounds = {
+                    minTime: remote_txData.stellar.payment.escrow.expire_ts.toString(),
+                    maxTime: "0"
+                  };
+                  var memo_tr = StellarSdk.Memo.text(remote_txData.stellar.payment.memo.value);
+                  transaction = new StellarSdk.TransactionBuilder(account,{timebounds, memo: memo_tr});         
+                  tx_array.forEach(function (item) {
+                    transaction.addOperation(item);
+                  });
+                  transaction = transaction.build();
+                  // we have this key already
+                  transaction.sign(remote_txData.keypair_escrow); 
+                  //fill_envelope_b64(transaction.toEnvelope().toXDR().toString("base64"));
+                  remote_txData.b64_escrow_tx = transaction.toEnvelope().toXDR().toString("base64");
+                  // at this point we can send envelope_b64.value to store with the other info it needs
+                  // it won't be submited to the stellar net until it's time becomes valid
+                  //tx_status.textContent = "Escrow Submited to callback";
+                  console.log("Escrow Submited to callback");
+                  send_escrow_to_callback(remote_txData);
+               });
+             }).catch(function(e) {
+               console.log("submitTransaction error");
+               remote_txData.escrow_status = 4;
+               console.log(e);
+               //tx_status.textContent = "Transaction failed";
+               console.log("Transaction failed");
+               if (e.extras.result_codes.transaction == "tx_bad_auth"){
+                  remote_txData.escrow_status = 5;
+                  //tx_status.textContent = "Transaction error: tx_bad_auth";
+                  console.log("Transaction error: tx_bad_auth");
+               } else {           
+                 //tx_status.textContent = "Transaction error: " + e.extras.result_codes.operations[0];
+                 console.log("Transaction error: " + e.extras.result_codes.operations[0]);
+               }                      
+          })
+          .then(function (transactionResult) {
+            console.log("tx_result");
+            console.log(transactionResult);
+            if (typeof transactionResult == "undefined") {
+              console.log("tx res undefined");
+              //tx_status.textContent = "tx res undefined";
+            }            
+          })
+          .catch(function (err) {
+            //console.log(err);
+            //tx_status.textContent = "Transaction Error: " + err;
+            console.log("Transaction Error: " + err); 
+          });
+      }
+
+     function fix7dec(string) {
+        var num = Number(string).toFixed(7);
+        string = num.toString();
+        return string;
+     }
+
+	$scope.submit = function (index) {
+        
+        if (Wallet.remote_txData.escrow_status == 1){
+          //indicates escrow mode active and ready
+          console.log("scope.submit Wallet.remote_txData.escrow_status == 1");
+          console.log(Wallet.remote_txData);
+          // we don't want to process it twice to change status
+          Wallet.remote_txData.escrow_status = 10;
+          submit_escrow();
+        }
 		var currentAccount = Wallet.current;
 		var source = currentAccount.id;
 

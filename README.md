@@ -74,6 +74,38 @@ ionic state restore
 npm run start
 ```
 
+or try:
+
+```
+cd ./stargazer/ionic;
+ npm install -g ionic;
+ npm install
+ ionic resources android --icon 
+ ionic state restore
+
+ cd ..
+ npm install
+ npm install -g grunt 
+ grunt build
+
+ npm install -g cordova
+ 
+bower install
+
+./android.sh  // builds new apk
+
+to rebuild another new version apk seems I need to delete or rename the old one and run  ./android.sh again
+
+mv ./stargazer/ionic/platforms/android/build/outputs/apk/android-debug.apk ./stargazer/ionic/platforms/android/build/outputs/apk/android-debug.apk.org
+
+or 
+
+rm ./stargazer/ionic/platforms/android/build/outputs/apk/android-debug.apk
+
+./android.sh
+
+```
+
 
 ## License
 
