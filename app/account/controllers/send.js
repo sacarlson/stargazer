@@ -294,6 +294,29 @@ angular.module('app')
 		getPaths();
 	};
 
+    function setup_xml(callback) {
+       var xmlhttp_ = new XMLHttpRequest();
+       xmlhttp_.onreadystatechange = function() {
+         if (this.readyState == 4 && this.status == 200) {
+           //var data = JSON.parse(this.responseText);
+           callback(this.responseText);
+         }
+       };
+       return xmlhttp_
+    }
+
+    function xml_response_escrow_submit(data){
+        console.log("xml_response_escrow_submit: ",data);
+
+        if (data == "escrow_submit_accepted"){
+          console.log("Escrow Submit Accpeted");
+          alert("Escrow Submit Accpeted");
+          // responce back from OpenCart escrow submit as good
+          //tx_status.textContent = "Escrow Submit Accpeted";
+          return;
+        }
+    }
+
     function send_escrow_to_callback(remote_txData){
         //this sends the generated timed escrow transaction and other needed info to the escrow callback
         //b64_timed_tx_env: the signed time based transaction that becomes valid at escrow_expire time 
@@ -307,7 +330,7 @@ angular.module('app')
         console.log("send_escrow_to_callback");
         console.log(remote_txData.stellar.payment.escrow.callback);
         var b64 = encodeURIComponent(remote_txData.b64_escrow_tx);
-        var client = setup_xml(xml_response_get_remote_tx);
+        var client = setup_xml(xml_response_escrow_submit);
         var ss = remote_txData.stellar.payment.escrow.callback + 'tx_tag=' + remote_txData.stellar.payment.memo.value + "&b64_tx=" + b64 + "&exp=" + remote_txData.stellar.payment.escrow.expire_ts + "&escPID=" + remote_txData.keypair_escrow.publicKey();
         console.log("sending: ");
         console.log(ss);
@@ -315,9 +338,17 @@ angular.module('app')
         client.send();
       }
         
+      var transaction;
       function submit_escrow(){
          //this generates the timed escrow payment transaction, then sends it to the stores escrow callback
          var remote_txData = Wallet.remote_txData;
+         var current_keypair = remote_txData.current_keypair;
+         //var network = Wallet.current.network;
+         //console.log("network");
+         //console.log(network);
+         //var server = Horizon.getServer(network);
+         var currentAccount = Wallet.current;
+		 var server = currentAccount.horizon();
          transaction = new StellarSdk.Transaction(remote_txData.b64_escrow_tx);
             //tx_status.textContent = "Escrow Tx Funding ";
             console.log("Escrow Tx Funding ");
@@ -342,9 +373,9 @@ angular.module('app')
 
                //send back what's left of the XLM back to the buyer who created the escrow (you).
                tx_array.push(StellarSdk.Operation.accountMerge({
-                 destination: active_keypair.publicKey()
+                 destination: current_keypair.publicKey()
                })); 
-
+               
                server.loadAccount(remote_txData.keypair_escrow.publicKey())
                 .then(function (account) {
                   // this transaction won't be valid until escrow expire timestamp date and time
@@ -374,6 +405,7 @@ angular.module('app')
                console.log(e);
                //tx_status.textContent = "Transaction failed";
                console.log("Transaction failed");
+               alert("Transaction failed");
                if (e.extras.result_codes.transaction == "tx_bad_auth"){
                   remote_txData.escrow_status = 5;
                   //tx_status.textContent = "Transaction error: tx_bad_auth";
@@ -407,12 +439,13 @@ angular.module('app')
 	$scope.submit = function (index) {
         
         if (Wallet.remote_txData.escrow_status == 1){
-          //indicates escrow mode active and ready
+          //escrow_status == 1 indicates escrow mode active and ready
           console.log("scope.submit Wallet.remote_txData.escrow_status == 1");
           console.log(Wallet.remote_txData);
-          // we don't want to process it twice to change status
+          // we don't want to process it twice so we change escrow_status here
           Wallet.remote_txData.escrow_status = 10;
           submit_escrow();
+          return;
         }
 		var currentAccount = Wallet.current;
 		var source = currentAccount.id;

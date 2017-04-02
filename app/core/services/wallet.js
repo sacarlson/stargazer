@@ -196,6 +196,53 @@ angular.module('app')
 		return Wallet.importAccount(publicKey, secret, name, network);
 	};
 
+    Wallet.addAccount = function (accountId, seed, name, network) {
+
+		if (!network) {
+			network = Horizon.public;
+		}
+
+        if (Wallet.accountByName[name]){
+          console.log("name already exists: ",name);
+          var count;
+          if (name.split("[").length >1){
+             count = parseInt(name.replace( /(^.*\[|\].*$)/g, '' ));
+             count = count + 1;
+             var array = name.split("[");
+             name = array[0] + "[" + count.toString() + "]";
+          }else{
+             name = name + "[2]";
+          }
+          console.log("renamed name: ",name); 
+        }else{ 
+           console.log("account alias name: ",name);
+           console.log("not seen in Wallet.accountByName: ",Wallet.accountByName);
+        }
+
+		Keychain.addKey(accountId, seed);
+
+		var opts = {
+			id:			accountId,
+			network:	network,
+			alias:		name,
+			balances: [{
+				asset_type: 'native',
+				asset_code: 'XLM',
+				balance: '0'
+			}]
+		};
+
+		var self = new Account(opts);
+		accounts[self.id] = self;
+		Storage.setItem('account.' + self.alias, self);
+
+		accountList.insert(self);
+		accountList.save();
+
+		//Wallet.current = self;
+		return self;
+	};
+
 	Wallet.importAccount = function (accountId, seed, name, network) {
 
 		if (!network) {
@@ -353,7 +400,8 @@ angular.module('app')
 	}
 
 	Wallet.accountList = accountList;
-
+    Wallet.accountByName = accountByName;
+    
 	//------------------------------------------------------------------------------------------------------------------
 
 	$rootScope.$on('newTransaction', function(event, args) {
