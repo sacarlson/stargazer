@@ -96,7 +96,9 @@ angular.module('app')
        // send:
        //http://b.funtracker.site/store/?route=extension/payment/stellar_net/get_tx&ver=3.0&tx_tag=70
        console.log("started get_remote_tx");
-       console.log("xml_url");
+       console.log("xml_url: ",xml_url);
+       console.log("tx_tag: ", txTag);
+       console.log("version: ", version);
        var client = setup_xml(xml_response_get_remote_tx);
        client.open("GET", xml_url + 'tx_tag=' + txTag + "&ver=" + version, true); 
        client.send();
@@ -149,21 +151,21 @@ angular.module('app')
 // non existant transaction, note amount: null
 //{"stellar":{"payment":{"destination":"GDUPQLNDVSUKJ4XKQQDITC7RFYCJTROCR6AMUBAMPGBIZXQU4UTAGX7C","network":"cee0302d","amount":null,"asset":{"code":"USD","issuer":"GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGSNFHEYVXM3XOJMDS674JZ"},"memo":{"type":"text","value":"88"},"order_status":null,"escrow":{"publicId":"GAVUFP3ZYPZUI2WBSFAGRMDWUWK2UDCPD4ODIIADOILQKB4GI3APVGIF","email":"funtracker.site.bank@gmail.com","expire_ts":1491119564,"expire_dt":"2017-04-02","status":"0","fee":10,"callback":"http:\/\/b.funtracker.site\/store\/?route=extension\/payment\/stellar_net\/submit_escrow&"}},"version":"3.0"}}
 
-            if (remote_txData.stellar.version = "3.0"){
+            if (remote_txData.stellar.version == "3.0"){
               console.log("remote_txData version 3.0 detected, will perform escrow setup");
-              if (remote_txData.stellar.payment.escrow.status != "0" || remote_txData.stellar.payment.amount != null){
+              if (remote_txData.stellar.payment.escrow.status != "10"){
                 console.log("order_status: " , remote_txData.stellar.payment.escrow.status);
-                if (remote_txData.stellar.payment.escrow.status == "1"){
+                if (remote_txData.stellar.payment.escrow.status == "0"){
                   //tx_status.textContent = "Escrow Status Proccessing "
-                  console.log("Escrow Status on this transaction already Proccessing ");
-                  alert("Escrow Status on this transaction already Proccessing (1)");
+                  console.log("Escrow Status on this transaction is already Proccessing ");
+                  alert("Escrow Status on this transaction is already Proccessing (0)");
                   // we should clear these values to prevent repeat spending
                   //destination.value = "";
                   //amount.value = "";
-                }else if (remote_txData.stellar.payment.escrow.status == "2"){
+                }else if (remote_txData.stellar.payment.escrow.status == "1"){
                   //tx_status.textContent = "Escrow Status Proccessed "
                   console.log("Escrow Status on this transaction already Proccessed ");
-                  alert("Escrow Status on this transaction already Proccessed (2)");               
+                  alert("Escrow Status on this transaction already Proccessed (1)");               
                   //destination.value = "";
                   //amount.value = "";
                 }else if (remote_txData.stellar.payment.amount != null){
@@ -178,8 +180,8 @@ angular.module('app')
                 }
                 return;
               }
-              alert("Escrow Transaction detected:  Escrow has added XLM fee of: " + remote_txData.stellar.payment.escrow.fee); 
-              //escrow_setup();
+              alert("Escrow Transaction detected:  An Escrow service fee of: " + remote_txData.stellar.payment.escrow.fee + " XLM will be added to your purchase if submited"); 
+              escrow_setup();
               return;
             }
           }          
