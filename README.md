@@ -100,7 +100,7 @@ mv ./stargazer/ionic/platforms/android/build/outputs/apk/android-debug.apk ./sta
 
 or 
 
-rm ./stargazer/ionic/platforms/android/build/outputs/apk/android-debug.apk
+rm ./ionic/platforms/android/build/outputs/apk/android-debug.apk
 
 ./android.sh
 

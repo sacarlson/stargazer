@@ -311,6 +311,9 @@ angular.module('app')
         if (data == "escrow_submit_accepted"){
           console.log("Escrow Submit Accpeted");
           alert("Escrow Submit Accpeted");
+          // remove amount value from send to prevent sending twice
+          //delete $scope.send.amount;
+          $location.path('/');
           // responce back from OpenCart escrow submit as good
           //tx_status.textContent = "Escrow Submit Accpeted";
           return;

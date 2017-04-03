@@ -132,7 +132,6 @@ angular.module('app')
         if (typeof remote_txData.content != "undefined") {
           // multisig app format return
           console.log(remote_txData.content.tx.tx_xdr);
-          //fill_envelope_b64(remote_txData.content.tx.tx_xdr);
           remote_txData.b64_escrow_tx = remote_txData.content.tx.tx_xdr; 
         }
         if (typeof remote_txData.stellar != "undefined") {
@@ -140,7 +139,7 @@ angular.module('app')
           console.log("stellar stargazer format detected");
           if (remote_txData.stellar.payment.order_status != null){
             console.log("order_status: " , remote_txData.stellar.payment.order_status);
-            //tx_status.textContent = "Order Status: " + remote_txData.stellar.payment.order_status;
+            alert("Escrow Status on this transaction is already Proccessing code: " + remote_txData.stellar.payment.order_status);
             return;
           }
           //stargazer_payment_convert(remote_txData);
@@ -156,27 +155,17 @@ angular.module('app')
               if (remote_txData.stellar.payment.escrow.status != "10"){
                 console.log("order_status: " , remote_txData.stellar.payment.escrow.status);
                 if (remote_txData.stellar.payment.escrow.status == "0"){
-                  //tx_status.textContent = "Escrow Status Proccessing "
                   console.log("Escrow Status on this transaction is already Proccessing ");
                   alert("Escrow Status on this transaction is already Proccessing (0)");
-                  // we should clear these values to prevent repeat spending
-                  //destination.value = "";
-                  //amount.value = "";
                 }else if (remote_txData.stellar.payment.escrow.status == "1"){
-                  //tx_status.textContent = "Escrow Status Proccessed "
                   console.log("Escrow Status on this transaction already Proccessed ");
                   alert("Escrow Status on this transaction already Proccessed (1)");               
-                  //destination.value = "";
-                  //amount.value = "";
                 }else if (remote_txData.stellar.payment.amount != null){
                   console.log("Escrow Status amount != null so transaction has already been processed but may have problem error code: " + remote_txData.stellar.payment.escrow.status);
                   alert("Escrow Status amount != null so transaction has already been processed but may have problem error code: " + remote_txData.stellar.payment.escrow.status);
                 }else{
-                  //tx_status.textContent = "Escrow Status failed error: " + remote_txData.stellar.payment.escrow.status;
                   console.log("Escrow Status failed error: " + remote_txData.stellar.payment.escrow.status);
                   alert("Escrow Status failed error: " + remote_txData.stellar.payment.escrow.status);
-                  //destination.value = "";
-                  //amount.value = "";
                 }
                 return;
               }
